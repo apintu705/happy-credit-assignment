@@ -6,37 +6,58 @@ import { useEffect } from 'react';
 
 function App() {
   const [items,setitems]=useState([])
-  const [search,setsearch]=useState("")
-  const [perpage,setperpage] = useState(0)
-  let limit=9;
+  // const [search,setsearch]=useState("")
+
+  const [current,setcurrent]=useState(0)
+  const [render,setrender]=useState(false)
+   const limit=9;
+  
+  // search functions
+
+    const searchitems=async(search)=>{
+      await fetch(`https://jsonplaceholder.typicode.com/posts?q=${search}`)
+      .then((res)=>{return res.json()})
+      .then((data)=>{setitems(data)})
+      .catch((error)=>console.error(error))
+    }
+    
+    const handleSearch=(e)=>{
+      if(e.target.value.length>2){
+        setcurrent(0)
+        searchitems(e.target.value)
+      }else if(e.target.value.length<2){
+        setrender(!render)
+      }
+    }
+  
+
+    // on landing function
+  useEffect(()=>{
+    // let url= search && search.length>2 ?`https://jsonplaceholder.typicode.com/posts?q=${search}&_limit=${limit}`:
+     
+
+    const landingitem=async()=>{
+      await fetch(`https://jsonplaceholder.typicode.com/posts`)
+      .then((res)=>{return res.json()})
+      .then((data)=>{setitems(data)})
+      .catch((error)=>console.log(error))
+    }
+    landingitem()
+  },[limit,render]);
+
 
 
   
-
-  useEffect(()=>{
-    let url= search && search.length>2 ?`https://jsonplaceholder.typicode.com/posts?q=${search}&_limit=${limit}`:
-    `https://jsonplaceholder.typicode.com/posts?_page=1&_limit=${limit}` 
-
-    const landingitem=async()=>{
-      await fetch(url)
-      .then((res)=>{setperpage(res.headers.get("x-total-count"));return res.json()})
-      .then((data)=>{console.log(data);setitems(data)})
-      .catch((error)=>console.error(error))
-    }
-    landingitem()
-  },[limit,search]);
-
-  const paginateitems=async(currentpageno)=>{
-    await fetch(`https://jsonplaceholder.typicode.com/posts?_page=${currentpageno}&_limit=${limit}`)
-      .then((res)=>res.json())
-      .then((data)=>setitems(data))
-      .catch((error)=>console.error(error))
-  }
-
+// pagination function
   const handelPageClick=(e)=>{
-    paginateitems(e.selected+1)
+    setcurrent(e.selected)
   }
+  const offset=((current)*limit)
+  const data=items.slice(offset,(offset+limit))
 
+
+
+  // alert user detalis function
   const handleUserdesc = async(id)=>{
     await fetch(`https://jsonplaceholder.typicode.com/users/${id}`)
       .then((res)=>res.json())
@@ -44,19 +65,29 @@ function App() {
       "Username:--"+data.username+"\n"+
       "Address:--"+data.address.city+"\n"+
       "Company:--"+data.company.name))
-      .catch((error)=>console.error(error))
+      .catch((error)=>console.log(error))
 
   }
 
+  console.log(current)
+  // used bootstrap className for styling
+
   return (
     <div className="container" >
+
+      {/* search bar */}
       <div className="inp">
-        <input type="text" onChange={(e)=>setsearch(e.target.value)} placeholder='Search by Title'/>
+        <input type="text" onChange={(e)=>handleSearch(e)} placeholder='Search by Title'/>
       </div>
 
-      <div className="row m-2"  >
-      {items && items.map((item)=>(
-        <div key={item.id} className="col-sm-6 col-md-4 v my-2" >
+
+      {/* cards */}
+      <div className="row m-5"  >
+
+      {data && data.map((item)=>(
+        // card
+        <div key={item.id} className="col-sm-6 col-md-4 v my-5" >
+            {/* card items */}
           <div className="card" style={{width: "18rem"}}>
             <div className="card-body">
               <h5 className="card-title">{item.title}</h5>
@@ -64,16 +95,18 @@ function App() {
               <button onClick={()=>handleUserdesc(item.userId)} className="btn btn-primary">View User</button>
             </div>
           </div>
+
         </div>
+
       ))}</div>
 
       
-      
+      {/* pagination component from react-paginate */}
       <ReactPaginate
       previousLabel={"Previous"}
       nextLabel={"Next"}
       breakLabel={"..."}
-      pageCount={Math.ceil(perpage/limit)}
+      pageCount={Math.ceil(items.length/limit)}
       onPageChange={handelPageClick}
       containerClassName={"pagination justify-content-center"}
       pageClassName={"page-item"}
@@ -85,6 +118,8 @@ function App() {
       breakLinkClassName={"page-link"}
       activeClassName={"active"}
       />
+
+
     </div>
   );
 }
